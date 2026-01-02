@@ -1,0 +1,4 @@
+{
+  "extends": "personal-style-guide/typescript/browser",
+  "include": ["src", "*.config.*"]
+}

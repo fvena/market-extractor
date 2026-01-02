@@ -1,0 +1,68 @@
+{
+  "name": "market-extractor",
+  "version": "0.1.0",
+  "description": "Library for scraping and aggregating data from global stock markets",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "workspaces": [
+    "playground/*"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "prepare": "husky",
+    "start": "npm run build && node dist/index.js"
+  },
+  "lint-staged": {
+    "*": "prettier -w --ignore-unknown",
+    "*.{js,ts}": [
+      "eslint --fix"
+    ]
+  },
+  "keywords": [
+    "scraping",
+    "stock market"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/fvena/typescript-library-template-pro#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fvena/typescript-library-template-pro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fvena/typescript-library-template-pro/issues"
+  },
+  "author": "Francisco Vena <fvena32@gmail.com>",
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.0",
+    "@commitlint/config-conventional": "^20.3.0",
+    "@swc/core": "^1.15.8",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "jsdom": "^27.4.0",
+    "lint-staged": "^16.2.7",
+    "personal-style-guide": "^0.6.0",
+    "prettier": "^3.7.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "unplugin-swc": "^1.5.9"
+  }
+}

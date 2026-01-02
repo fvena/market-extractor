@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+.pnpm-store
+.npm
+
+# Build
+dist
+lib
+.swc
+temp
+.cache
+
+# Tests and coverage
+coverage
+lib-cov
+.nyc_output
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+
+# Vitepress
+docs/.vitepress/cache
+docs/.vitepress/dist
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+data/
+temp/
