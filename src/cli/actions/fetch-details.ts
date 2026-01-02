@@ -1,9 +1,9 @@
 import type { MarketOperationResult, ProcessedProduct } from "../../markets/types";
 import type { ActionResult } from "./index";
+import { log } from "@clack/prompts";
 import { selectMarkets, selectTestMode } from "../prompts";
 import { createTimer } from "../utils/timer";
 import { createSpinner, succeedSpinner, updateSpinner, warnSpinner } from "../utils/progress";
-import { successIndent, warningIndent } from "../utils/logger";
 import { getMarket } from "../../markets/registry";
 import { hasListings } from "../../storage";
 import { config } from "../../config";
@@ -73,9 +73,7 @@ export async function fetchDetails(): Promise<ActionResult> {
     const listingsExist = await hasListings(market.slug);
 
     if (!listingsExist) {
-      const spinner = createSpinner(`${market.name}...`);
-      await delay(100);
-      warnSpinner(spinner, `${market.name} - No listings found (run Fetch Listings first)`);
+      log.warning(`${market.name} - No listings found (run Fetch Listings first)`);
       results.push({
         duration: timer.stop(),
         marketId,
@@ -86,9 +84,7 @@ export async function fetchDetails(): Promise<ActionResult> {
     }
 
     if (!market.implemented.details) {
-      const spinner = createSpinner(`${market.name}...`);
-      await delay(100);
-      warnSpinner(spinner, `${market.name} - Not implemented`);
+      log.warning(`${market.name} - Not implemented`);
       results.push({
         duration: timer.stop(),
         marketId,
@@ -115,40 +111,22 @@ export async function fetchDetails(): Promise<ActionResult> {
       const mockProduct = generateMockProduct(index);
       const missingFields = getMissingFields(mockProduct);
 
-      // Stop spinner temporarily to show result
-      spinner.stop();
-
       if (missingFields.length > 0) {
-        warningIndent(
-          `${mockProduct.name ?? "Unknown product"} (missing: ${missingFields.join(", ")})`,
-        );
         warningCount++;
-      } else {
-        successIndent(mockProduct.name ?? "Unknown product");
-      }
-
-      // Restart spinner for next item
-      if (index < productCount) {
-        spinner.start();
       }
     }
 
     if (warningCount > 0) {
       warnings.push(`${String(warningCount)} products with missing fields`);
-    }
-
-    const duration = timer.stop();
-
-    // Show final result
-    const finalSpinner = createSpinner("");
-    if (warningCount > 0) {
       warnSpinner(
-        finalSpinner,
+        spinner,
         `${market.name} - ${String(productCount)} products (${String(warningCount)} warnings)`,
       );
     } else {
-      succeedSpinner(finalSpinner, `${market.name} - ${String(productCount)} products`);
+      succeedSpinner(spinner, `${market.name} - ${String(productCount)} products`);
     }
+
+    const duration = timer.stop();
 
     results.push({
       count: productCount,

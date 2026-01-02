@@ -1,4 +1,5 @@
 import type { MarketOperationResult } from "../../markets/types";
+import { note } from "@clack/prompts";
 import colors from "yoctocolors";
 import { getMarket } from "../../markets/registry";
 import { Timer } from "../utils/timer";
@@ -18,20 +19,6 @@ export interface ActionResult {
   results: MarketOperationResult[];
   totalDuration: number;
 }
-
-/**
- * Box drawing characters for summary display
- */
-const BOX = {
-  bottomLeft: "\u2514",
-  bottomRight: "\u2518",
-  horizontal: "\u2500",
-  middleLeft: "\u251C",
-  middleRight: "\u2524",
-  topLeft: "\u250C",
-  topRight: "\u2510",
-  vertical: "\u2502",
-};
 
 /**
  * Pad or truncate string to fixed width
@@ -54,43 +41,21 @@ function padStart(string_: string, width: number): string {
 }
 
 /**
- * Create a horizontal line
- */
-function horizontalLine(width: number, left: string, right: string): string {
-  return left + BOX.horizontal.repeat(width - 2) + right;
-}
-
-/**
- * Display summary of action results
+ * Display summary of action results using clack prompts note()
  */
 export function showSummary(result: ActionResult): void {
   if (result.results.length === 0) {
-    console.log(colors.dim("\n  No operations performed.\n"));
+    note("No operations performed.", result.action);
     return;
   }
 
   const timer = new Timer();
-  const width = 60;
-  const nameWidth = 24;
-  const statusWidth = 24;
+  const nameWidth = 20;
+  const statusWidth = 18;
   const timeWidth = 8;
 
-  console.log("");
+  const lines: string[] = [];
 
-  // Top border with title
-  console.log(colors.dim(horizontalLine(width, BOX.topLeft, BOX.topRight)));
-  const title = ` ${result.action} `;
-  const titlePadding = Math.floor((width - 2 - title.length) / 2);
-  console.log(
-    colors.dim(BOX.vertical) +
-      " ".repeat(titlePadding) +
-      colors.bold(title) +
-      " ".repeat(width - 2 - titlePadding - title.length) +
-      colors.dim(BOX.vertical),
-  );
-  console.log(colors.dim(horizontalLine(width, BOX.middleLeft, BOX.middleRight)));
-
-  // Results
   let totalCount = 0;
   let successCount = 0;
 
@@ -112,7 +77,7 @@ export function showSummary(result: ActionResult): void {
       }
       icon = colors.green("\u2713");
     } else if (result_.error) {
-      status = result_.error;
+      status = result_.error.length > 15 ? result_.error.slice(0, 14) + "\u2026" : result_.error;
       icon = colors.red("\u2717");
     } else if (result_.warnings && result_.warnings.length > 0) {
       status = result_.warnings[0] ?? "Warning";
@@ -122,17 +87,13 @@ export function showSummary(result: ActionResult): void {
       icon = colors.dim("?");
     }
 
-    const line =
-      ` ${icon} ` +
-      padEnd(name, nameWidth) +
-      padEnd(status, statusWidth) +
-      padStart(duration, timeWidth);
-
-    console.log(colors.dim(BOX.vertical) + line + colors.dim(BOX.vertical));
+    lines.push(
+      `${icon} ${padEnd(name, nameWidth)}${padEnd(status, statusWidth)}${padStart(duration, timeWidth)}`,
+    );
   }
 
   // Separator
-  console.log(colors.dim(horizontalLine(width, BOX.middleLeft, BOX.middleRight)));
+  lines.push("\u2500".repeat(nameWidth + statusWidth + timeWidth + 2));
 
   // Totals
   const totalDuration = timer.format(result.totalDuration);
@@ -146,12 +107,7 @@ export function showSummary(result: ActionResult): void {
     totalStatus = "No results";
   }
 
-  const totalLine =
-    "   " + padEnd(totalStatus, nameWidth + statusWidth) + padStart(totalDuration, timeWidth);
+  lines.push(`  ${padEnd(totalStatus, nameWidth + statusWidth)}${padStart(totalDuration, timeWidth)}`);
 
-  console.log(colors.dim(BOX.vertical) + totalLine + colors.dim(BOX.vertical));
-
-  // Bottom border
-  console.log(colors.dim(horizontalLine(width, BOX.bottomLeft, BOX.bottomRight)));
-  console.log("");
+  note(lines.join("\n"), result.action);
 }

@@ -5,13 +5,13 @@ export const bmeScaleup: MarketDefinition = {
   id: "bme-scaleup",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "BME ScaleUp",
   slug: "bme-scaleup",
   urls: {
-    base: "https://www.bmescaleup.es",
-    listings: "https://www.bmescaleup.es/ing/Companies/Listed-Companies",
+    base: "https://www.bolsasymercados.es",
+    listings: "https://www.bolsasymercados.es/MTF_Equity/bme-scaleup/esp/Listado.aspx",
   },
 };

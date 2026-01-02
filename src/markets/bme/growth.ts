@@ -5,13 +5,13 @@ export const bmeGrowth: MarketDefinition = {
   id: "bme-growth",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "BME Growth",
   slug: "bme-growth",
   urls: {
     base: "https://www.bmegrowth.es",
-    listings: "https://www.bmegrowth.es/ing/Companies/Listed-Companies",
+    listings: "https://www.bmegrowth.es/esp/Listado.aspx",
   },
 };

@@ -4,7 +4,14 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(timeout 3 npm start)"
+      "Bash(timeout 3 npm start)",
+      "Bash(npx playwright install chromium)",
+      "Bash(npm run lint:*)",
+      "Bash(npm start)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

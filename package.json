@@ -69,8 +69,8 @@
   "dependencies": {
     "@clack/prompts": "^0.11.0",
     "figlet": "^1.9.4",
+    "playwright": "^1.57.0",
     "tsx": "^4.21.0",
-    "yocto-spinner": "^1.0.0",
     "yoctocolors": "^2.1.2"
   }
 }

@@ -5,13 +5,13 @@ export const euronextExpand: MarketDefinition = {
   id: "euronext-expand",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "Euronext Expand",
   slug: "euronext-expand",
   urls: {
     base: "https://live.euronext.com",
-    listings: "https://live.euronext.com/en/markets/expand",
+    listings: "https://live.euronext.com/en/products/equities/expand/list",
   },
 };

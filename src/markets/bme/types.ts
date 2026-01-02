@@ -1,13 +1,30 @@
-import type { BaseListingItem, BaseProductDetails } from "../types";
+import type { BaseProductDetails } from "../types";
 
 /**
- * BME-specific listing item
- * Raw data structure from BME market listings
+ * BME Growth and ScaleUp listing item
+ * Extracted from table with id "Contenido_Tbl"
  */
-export interface BmeListingItem extends BaseListingItem {
-  isin?: string;
-  ticker: string;
+export interface BmeAlternativesListingItem {
+  name: string;
+  sector: string;
+  url: string;
 }
+
+/**
+ * BME Continuo listing item
+ * Extracted from paginated table
+ */
+export interface BmeContinuoListingItem {
+  name: string;
+  sector: string;
+  subsector: string;
+  url: string;
+}
+
+/**
+ * Union type for all BME listing items
+ */
+export type BmeListingItem = BmeAlternativesListingItem | BmeContinuoListingItem;
 
 /**
  * BME-specific product details

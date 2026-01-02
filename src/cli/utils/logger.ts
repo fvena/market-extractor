@@ -1,57 +1,57 @@
-import colors from "yoctocolors";
+import { log } from "@clack/prompts";
 
 /**
- * Log a success message with green checkmark
+ * Log a success message
  */
 export function success(message: string): void {
-  console.log(`${colors.green("✓")} ${message}`);
+  log.success(message);
 }
 
 /**
- * Log a warning message with yellow warning sign
+ * Log a warning message
  */
 export function warning(message: string): void {
-  console.log(`${colors.yellow("⚠")} ${message}`);
+  log.warning(message);
 }
 
 /**
- * Log an error message with red X
+ * Log an error message
  */
 export function error(message: string): void {
-  console.log(`${colors.red("✗")} ${message}`);
+  log.error(message);
 }
 
 /**
- * Log an info message with blue info sign
+ * Log an info message
  */
 export function info(message: string): void {
-  console.log(`${colors.blue("ℹ")} ${message}`);
+  log.info(message);
 }
 
 /**
- * Log a dimmed message
+ * Log a plain message
  */
 export function dim(message: string): void {
-  console.log(colors.dim(message));
+  log.message(message);
 }
 
 /**
  * Log an indented success message (for nested items)
  */
 export function successIndent(message: string): void {
-  console.log(`  ${colors.green("✓")} ${message}`);
+  log.success(`  ${message}`);
 }
 
 /**
  * Log an indented warning message (for nested items)
  */
 export function warningIndent(message: string): void {
-  console.log(`  ${colors.yellow("⚠")} ${message}`);
+  log.warning(`  ${message}`);
 }
 
 /**
  * Log an indented error message (for nested items)
  */
 export function errorIndent(message: string): void {
-  console.log(`  ${colors.red("✗")} ${message}`);
+  log.error(`  ${message}`);
 }

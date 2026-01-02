@@ -5,7 +5,7 @@ export const bmeContinuo: MarketDefinition = {
   id: "bme-continuo",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "BME Continuo",
@@ -13,6 +13,6 @@ export const bmeContinuo: MarketDefinition = {
   urls: {
     base: "https://www.bolsasymercados.es",
     listings:
-      "https://www.bolsasymercados.es/bme-exchange/es/Mercados-y-Cotizaciones/Acciones/Mercado-Continuo/Precios",
+      "https://www.bolsasymercados.es/bme-exchange/es/Mercados-y-Cotizaciones/Acciones/Mercado-Continuo/Empresas-Cotizadas",
   },
 };

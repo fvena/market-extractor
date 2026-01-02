@@ -1,13 +1,16 @@
-import type { BaseListingItem, BaseProductDetails } from "../types";
+import type { BaseProductDetails } from "../types";
 
 /**
- * Euronext-specific listing item
- * Raw data structure from Euronext market listings
+ * Euronext listing item
+ * Extracted from table with id "stocks-data-table-es"
+ * Common structure for Access, Expand, Growth, and Regulated markets
  */
-export interface EuronextListingItem extends BaseListingItem {
+export interface EuronextListingItem {
   isin: string;
-  market: string; // Sub-market within Euronext
+  market: string;
+  name: string;
   ticker: string;
+  url: string;
 }
 
 /**
@@ -19,7 +22,7 @@ export interface EuronextProductDetails extends BaseProductDetails {
   currency: string;
   industry?: string;
   isin: string;
-  lei?: string; // Legal Entity Identifier
+  lei?: string;
   listingDate?: string;
   marketCap?: number;
   sector?: string;

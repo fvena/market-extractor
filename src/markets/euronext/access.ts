@@ -5,13 +5,13 @@ export const euronextAccess: MarketDefinition = {
   id: "euronext-access",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "Euronext Access",
   slug: "euronext-access",
   urls: {
     base: "https://live.euronext.com",
-    listings: "https://live.euronext.com/en/markets/access",
+    listings: "https://live.euronext.com/en/products/equities/access/list",
   },
 };

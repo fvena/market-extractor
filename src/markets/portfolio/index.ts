@@ -5,13 +5,13 @@ export const portfolio: MarketDefinition = {
   id: "portfolio",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "Portfolio Stock Exchange",
   slug: "portfolio",
   urls: {
-    base: "https://www.portfoliostockexchange.com",
-    listings: "https://www.portfoliostockexchange.com/companies",
+    base: "https://api.portfolio.exchange",
+    listings: "https://api.portfolio.exchange/open/market?page=0&size=100&entityType=EQUITY",
   },
 };

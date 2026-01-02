@@ -1,15 +1,55 @@
-import type { MarketOperationResult } from "../../markets/types";
+import type { MarketId, MarketOperationResult, ProgressCallback } from "../../markets/types";
 import type { ActionResult } from "./index";
 import { selectMarkets } from "../prompts";
 import { createTimer } from "../utils/timer";
-import { createSpinner, succeedSpinner, warnSpinner } from "../utils/progress";
+import {
+  createSpinner,
+  failSpinner,
+  succeedSpinner,
+  updateSpinner,
+  warnSpinner,
+} from "../utils/progress";
 import { getMarket } from "../../markets/registry";
+import { saveListings } from "../../storage";
+import {
+  closeBrowser,
+  fetchBmeAlternativesListings,
+  fetchBmeContinuoListings,
+  fetchEuronextListings,
+  fetchPortfolioListings,
+} from "../../scrapers";
+import colors from "yoctocolors";
 
 /**
- * Simulate fetching delay
+ * Fetch listings for a specific market
  */
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function fetchMarketListings(
+  marketId: MarketId,
+  url: string,
+  baseUrl: string,
+  onProgress: ProgressCallback,
+): Promise<{ data: unknown[]; error?: string; warnings: string[] }> {
+  switch (marketId) {
+    case "bme-continuo": {
+      return fetchBmeContinuoListings(url, baseUrl, onProgress);
+    }
+    case "bme-growth":
+    case "bme-scaleup": {
+      return fetchBmeAlternativesListings(url, baseUrl, onProgress);
+    }
+    case "euronext-access":
+    case "euronext-expand":
+    case "euronext-growth":
+    case "euronext-regulated": {
+      return fetchEuronextListings(url, baseUrl, onProgress);
+    }
+    case "portfolio": {
+      return fetchPortfolioListings(url, onProgress);
+    }
+    default: {
+      return { data: [], error: "Unknown market", warnings: [] };
+    }
+  }
 }
 
 /**
@@ -37,31 +77,78 @@ export async function fetchListings(): Promise<ActionResult> {
     const timer = createTimer();
     const spinner = createSpinner(`Fetching listings from ${market.name}...`);
 
-    // Simulate fetch delay
-    await delay(200 + Math.random() * 300);
-
-    const duration = timer.stop();
-
-    if (market.implemented.listings) {
-      // Stub: simulate successful fetch with mock count
-      const mockCount = Math.floor(50 + Math.random() * 200);
-      succeedSpinner(spinner, `${market.name} - ${String(mockCount)} products`);
-      results.push({
-        count: mockCount,
-        duration,
-        marketId,
-        success: true,
-      });
-    } else {
+    if (!market.implemented.listings) {
       warnSpinner(spinner, `${market.name} - Not implemented`);
       results.push({
-        duration,
+        duration: timer.stop(),
         marketId,
         success: false,
         warnings: ["Not implemented"],
       });
+      continue;
+    }
+
+    try {
+      // Create progress callback that updates the spinner
+      const onProgress: ProgressCallback = (current, total, message) => {
+        updateSpinner(spinner, `Fetching listings from ${market.name}: ${colors.dim(message)}`);
+      };
+
+      const result = await fetchMarketListings(
+        marketId,
+        market.urls.listings,
+        market.urls.base,
+        onProgress,
+      );
+
+      const duration = timer.stop();
+
+      if (result.error) {
+        failSpinner(spinner, `${market.name} - Error: ${result.error}`);
+        results.push({
+          duration,
+          error: result.error,
+          marketId,
+          success: false,
+          warnings: result.warnings,
+        });
+        continue;
+      }
+
+      // Save the listings to JSON file
+      await saveListings(market.slug, result.data);
+
+      if (result.warnings.length > 0) {
+        warnSpinner(
+          spinner,
+          `${market.name} - ${String(result.data.length)} products (${String(result.warnings.length)} warnings)`,
+        );
+      } else {
+        succeedSpinner(spinner, `Fetched listings from ${market.name} ${colors.dim(`- ${String(result.data.length)} products`)}`);
+      }
+
+      results.push({
+        count: result.data.length,
+        duration,
+        marketId,
+        success: true,
+        warnings: result.warnings.length > 0 ? result.warnings : undefined,
+      });
+    } catch (error) {
+      const duration = timer.stop();
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      failSpinner(spinner, `${market.name} - Error: ${errorMessage}`);
+      results.push({
+        duration,
+        error: errorMessage,
+        marketId,
+        success: false,
+      });
     }
   }
+
+  // Close the browser when done with all browser-based markets
+  await closeBrowser();
 
   return {
     action: "Fetch Listings",

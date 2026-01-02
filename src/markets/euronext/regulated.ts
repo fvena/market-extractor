@@ -5,13 +5,13 @@ export const euronextRegulated: MarketDefinition = {
   id: "euronext-regulated",
   implemented: {
     details: false,
-    listings: false,
+    listings: true,
     processing: false,
   },
   name: "Euronext Regulated",
   slug: "euronext-regulated",
   urls: {
     base: "https://live.euronext.com",
-    listings: "https://live.euronext.com/en/markets/regulated",
+    listings: "https://live.euronext.com/en/products/equities/regulated/list",
   },
 };
