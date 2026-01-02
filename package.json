@@ -24,9 +24,9 @@
     "build": "tsup",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
     "prepare": "husky",
-    "start": "npm run build && node dist/index.js"
+    "start": "tsx src/cli/index.ts"
   },
   "lint-staged": {
     "*": "prettier -w --ignore-unknown",
@@ -55,6 +55,7 @@
     "@commitlint/cli": "^20.3.0",
     "@commitlint/config-conventional": "^20.3.0",
     "@swc/core": "^1.15.8",
+    "@types/figlet": "^1.7.0",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
@@ -64,5 +65,12 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.9"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "figlet": "^1.9.4",
+    "tsx": "^4.21.0",
+    "yocto-spinner": "^1.0.0",
+    "yoctocolors": "^2.1.2"
   }
 }
