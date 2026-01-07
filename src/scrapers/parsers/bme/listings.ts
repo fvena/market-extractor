@@ -1,5 +1,8 @@
 import type { Locator, Page } from "playwright";
-import type { BmeAlternativesListingItem, BmeContinuoListingItem } from "../../../markets/bme/types";
+import type {
+  BmeAlternativesListingItem,
+  BmeContinuoListingItem,
+} from "../../../markets/bme/types";
 
 /**
  * Extract text content from a locator, returns empty string if not found
@@ -7,6 +10,16 @@ import type { BmeAlternativesListingItem, BmeContinuoListingItem } from "../../.
 async function getTextContent(locator: Locator): Promise<string> {
   const text = await locator.textContent();
   return text?.trim() ?? "";
+}
+
+/**
+ * Extract ISIN from BME Continuo URL
+ * URL format: .../Ficha/Company-Name-ES0125220311 or .../Ficha/ES0125220311
+ */
+function extractIsinFromUrl(url: string): string {
+  // ISIN pattern: 2 letters + 10 alphanumeric characters at the end of the URL
+  const match = /([A-Z]{2}[\dA-Z]{10})$/.exec(url);
+  return match?.[1] ?? "";
 }
 
 /**
@@ -92,7 +105,9 @@ export async function parseContinuoTable(
 
     if (href && name) {
       const url = href.startsWith("http") ? href : baseUrl + href;
+      const isin = extractIsinFromUrl(url);
       items.push({
+        isin,
         name,
         sector: sector.trim(),
         subsector: subsector.trim(),

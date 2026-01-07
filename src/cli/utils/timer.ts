@@ -14,8 +14,13 @@ export class Timer {
 
   format(ms: number): string {
     if (ms < 1000) return `${String(ms)}ms`;
-    const seconds = (ms / 1000).toFixed(1);
-    return `${seconds}s`;
+    const totalSeconds = ms / 1000;
+    if (totalSeconds < 60) {
+      return `${totalSeconds.toFixed(1)}s`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${String(minutes)}m ${String(seconds)}s`;
   }
 }
 

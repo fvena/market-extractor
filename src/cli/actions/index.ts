@@ -107,7 +107,9 @@ export function showSummary(result: ActionResult): void {
     totalStatus = "No results";
   }
 
-  lines.push(`  ${padEnd(totalStatus, nameWidth + statusWidth)}${padStart(totalDuration, timeWidth)}`);
+  lines.push(
+    `  ${padEnd(totalStatus, nameWidth + statusWidth)}${padStart(totalDuration, timeWidth)}`,
+  );
 
   note(lines.join("\n"), result.action);
 }

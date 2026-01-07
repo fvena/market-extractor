@@ -1,5 +1,6 @@
 import type { MarketId, MarketOperationResult, ProgressCallback } from "../../markets/types";
 import type { ActionResult } from "./index";
+import colors from "yoctocolors";
 import { selectMarkets } from "../prompts";
 import { createTimer } from "../utils/timer";
 import {
@@ -18,7 +19,6 @@ import {
   fetchEuronextListings,
   fetchPortfolioListings,
 } from "../../scrapers";
-import colors from "yoctocolors";
 
 /**
  * Fetch listings for a specific market
@@ -104,7 +104,7 @@ export async function fetchListings(): Promise<ActionResult> {
       const duration = timer.stop();
 
       if (result.error) {
-        failSpinner(spinner, `${market.name} - Error: ${result.error}`);
+        failSpinner(spinner, `Error fetching listings from ${market.name}: ${result.error}`);
         results.push({
           duration,
           error: result.error,
@@ -121,10 +121,13 @@ export async function fetchListings(): Promise<ActionResult> {
       if (result.warnings.length > 0) {
         warnSpinner(
           spinner,
-          `${market.name} - ${String(result.data.length)} products (${String(result.warnings.length)} warnings)`,
+          `Fetched listings from ${market.name} ${colors.dim(`- ${String(result.data.length)} products (${String(result.warnings.length)} warnings)`)}`,
         );
       } else {
-        succeedSpinner(spinner, `Fetched listings from ${market.name} ${colors.dim(`- ${String(result.data.length)} products`)}`);
+        succeedSpinner(
+          spinner,
+          `Fetched listings from ${market.name} ${colors.dim(`${String(result.data.length)} products`)}`,
+        );
       }
 
       results.push({

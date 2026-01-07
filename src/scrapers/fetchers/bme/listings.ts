@@ -1,5 +1,8 @@
 import type { Page } from "playwright";
-import type { BmeAlternativesListingItem, BmeContinuoListingItem } from "../../../markets/bme/types";
+import type {
+  BmeAlternativesListingItem,
+  BmeContinuoListingItem,
+} from "../../../markets/bme/types";
 import type { ProgressCallback } from "../../../markets/types";
 import { initBrowser, navigateTo } from "../../clients/browser";
 import { parseAlternativesTable, parseContinuoTable } from "../../parsers/bme/listings";

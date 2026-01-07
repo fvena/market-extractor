@@ -25,6 +25,13 @@ export function getProcessedPath(slug: string): string {
 }
 
 /**
+ * Get path for corporate actions file
+ */
+export function getCorporateActionsPath(slug: string): string {
+  return path.join(config.outputDir, config.dirs.details, `${slug}-corporate-actions.json`);
+}
+
+/**
  * Get path for report file
  */
 export function getReportPath(): string {
@@ -123,6 +130,35 @@ export async function loadProcessed(slug: string): Promise<ProcessedProduct[] | 
   }
   const content = await readFile(path, "utf8");
   return JSON.parse(content) as ProcessedProduct[];
+}
+
+/**
+ * Save corporate actions to JSON file
+ */
+export async function saveCorporateActions(slug: string, data: unknown): Promise<void> {
+  await ensureOutputDirectories();
+  const filePath = getCorporateActionsPath(slug);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename, unicorn/no-null -- File path is safe
+  await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+}
+
+/**
+ * Load corporate actions from JSON file
+ */
+export async function loadCorporateActions<T>(slug: string): Promise<T | undefined> {
+  const filePath = getCorporateActionsPath(slug);
+  if (!(await fileExists(filePath))) {
+    return;
+  }
+  const content = await readFile(filePath, "utf8");
+  return JSON.parse(content) as T;
+}
+
+/**
+ * Check if corporate actions file exists for a market
+ */
+export async function hasCorporateActions(slug: string): Promise<boolean> {
+  return fileExists(getCorporateActionsPath(slug));
 }
 
 /**

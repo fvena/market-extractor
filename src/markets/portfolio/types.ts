@@ -1,5 +1,3 @@
-import type { BaseProductDetails } from "../types";
-
 /**
  * Periodicity enum for coupon payments
  */
@@ -193,15 +191,53 @@ export interface PortfolioListingItem extends IssuanceMarketBean {
  * Portfolio-specific product details
  * Raw data structure from Portfolio product pages
  */
-export interface PortfolioProductDetails extends BaseProductDetails {
-  advisors?: string[];
-  currency: string;
-  description?: string;
-  isin: string;
-  listingDate?: string;
-  marketCap?: number;
-  sector?: string;
-  ticker: string;
-  type: string;
-  website?: string;
+export interface PortfolioProductDetails extends PortfolioListingItem {
+  priceHistory?: PortfolioPriceHistory;
 }
+
+export interface PostTradeTransaction {
+  entityType: string;
+  executionVenue: string;
+  flag: string;
+  isinCode: string;
+  price: number;
+  priceCurrency: string;
+  publicationDateTime: string;
+  publicationVenue: string;
+  quantity: number;
+  tradingDateTime: string;
+  transactionIdentificationCode: number;
+}
+
+export interface PostTradeResponse {
+  content: PostTradeTransaction[];
+  empty: boolean;
+  first: boolean;
+  last: boolean;
+  number: number;
+  numberOfElements: number;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface PortfolioDailyPrice {
+  closePrice: number;
+  date: string;
+  turnover?: number;
+  volume?: number;
+}
+
+export interface PortfolioPriceHistory {
+  periodEnd: string;
+  periodStart: string;
+  prices: PortfolioDailyPrice[];
+  tradingDays: number;
+}
+
+/** Progress callback for detail fetching with phases */
+export type PortfolioDetailProgressCallback = (phase: string, detail?: string) => void;

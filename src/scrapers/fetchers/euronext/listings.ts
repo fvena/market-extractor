@@ -14,11 +14,11 @@ export interface EuronextScrapingResult {
 }
 
 /**
-   * Accepts cookies by clicking the consent button.
-   */
+ * Accepts cookies by clicking the consent button.
+ */
 async function acceptCookies(page: Page): Promise<void> {
   const cookieButton = page.getByRole("button", { name: "I Accept" });
-  if ((await cookieButton.count()) === 0) return
+  if ((await cookieButton.count()) === 0) return;
   await cookieButton.click({ timeout: 5000 });
 }
 

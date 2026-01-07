@@ -4,7 +4,7 @@ export const euronextAccess: MarketDefinition = {
   family: "euronext",
   id: "euronext-access",
   implemented: {
-    details: false,
+    details: true,
     listings: true,
     processing: false,
   },

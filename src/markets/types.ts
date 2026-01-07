@@ -38,6 +38,7 @@ export interface MarketDefinition {
   slug: string; // Used for output folder names (e.g., 'bme-growth')
   urls: {
     base: string; // Base URL for product detail pages
+    corporateActions?: string; // URL for market-wide corporate actions
     listings: string; // URL to fetch product listings
   };
 }

@@ -4,7 +4,7 @@ export const euronextRegulated: MarketDefinition = {
   family: "euronext",
   id: "euronext-regulated",
   implemented: {
-    details: false,
+    details: true,
     listings: true,
     processing: false,
   },

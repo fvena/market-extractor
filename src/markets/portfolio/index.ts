@@ -4,7 +4,7 @@ export const portfolio: MarketDefinition = {
   family: "portfolio",
   id: "portfolio",
   implemented: {
-    details: false,
+    details: true,
     listings: true,
     processing: false,
   },

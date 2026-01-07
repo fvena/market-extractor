@@ -4,7 +4,7 @@ export const bmeContinuo: MarketDefinition = {
   family: "bme",
   id: "bme-continuo",
   implemented: {
-    details: false,
+    details: true,
     listings: true,
     processing: false,
   },
@@ -12,6 +12,7 @@ export const bmeContinuo: MarketDefinition = {
   slug: "bme-continuo",
   urls: {
     base: "https://www.bolsasymercados.es",
+    corporateActions: "https://apiweb.bolsasymercados.es/Market/v1/EQ/CorporateActions",
     listings:
       "https://www.bolsasymercados.es/bme-exchange/es/Mercados-y-Cotizaciones/Acciones/Mercado-Continuo/Empresas-Cotizadas",
   },

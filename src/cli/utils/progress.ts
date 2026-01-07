@@ -1,4 +1,5 @@
 import { spinner } from "@clack/prompts";
+import colors from "yoctocolors";
 
 type Spinner = ReturnType<typeof spinner>;
 
@@ -22,19 +23,19 @@ export function updateSpinner(s: Spinner, text: string): void {
  * Stop spinner with success message
  */
 export function succeedSpinner(s: Spinner, text: string): void {
-  s.stop(text);
+  s.stop(colors.green("✓ ") + text);
 }
 
 /**
  * Stop spinner with failure message
  */
 export function failSpinner(s: Spinner, text: string): void {
-  s.stop(text);
+  s.stop(colors.red("✗ ") + text);
 }
 
 /**
  * Stop spinner with warning message
  */
 export function warnSpinner(s: Spinner, text: string): void {
-  s.stop(text);
+  s.stop(colors.yellow("⚠ ") + text);
 }

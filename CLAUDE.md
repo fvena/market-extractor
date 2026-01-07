@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-market-extractor is a TypeScript library for scraping and aggregating data from global stock markets. The project is in early development (v0.1.0).
+market-extractor is a TypeScript library and CLI for scraping stock market data from BME (Spanish markets), Euronext, and Portfolio Stock Exchange. It fetches listings, extracts product details (including price history), and generates Excel reports.
 
 ## Development Commands
 
@@ -17,79 +17,140 @@ npm run format       # Code formatting with Prettier
 npm start            # Run the CLI interactively
 ```
 
+## Setup
+
+```bash
+npm install
+npx playwright install chromium
+```
+
 ## Architecture
 
-- **Entry Point**: `src/index.ts` - Main module exports
-- **Utilities**: `src/utilities.ts` - Core library functions
-- **Build Output**: `dist/` - ESM output with TypeScript declarations
+### Data Pipeline
 
-## Build Configuration
+The system follows a three-stage pipeline:
 
-- **Tsup**: Configured in `tsup.config.ts` for ESM format with neutral platform targeting
-- **Output**: Minified `.js`, `.d.ts` files with source maps
-- **Tree shaking**: Enabled for optimal bundle size
+1. **Listings** → Fetch product lists from market websites
+2. **Details** → Fetch detailed data for each product (including price history)
+3. **Report** → Process and generate Excel output
 
-## Code Quality
+### Scraping Layer (`src/scrapers/`)
 
-- **TypeScript**: Extends `personal-style-guide/typescript/browser`
-- **ESLint**: Uses `personal-style-guide/eslint/browser` ruleset
-- **Prettier**: Auto-formatting via lint-staged on commit
-- **Commitlint**: Conventional commits with relaxed body length rules
-- **Husky**: Pre-commit hooks for quality checks
+Three-tier architecture:
 
-## Requirements
+- **clients/** - Browser (Playwright) and HTTP utilities for page navigation and API calls
+- **parsers/** - HTML/DOM extraction logic per market family
+- **fetchers/** - Orchestration: pagination, navigation, progress callbacks
 
-- Node.js >= 22.11.0
+Each market family (BME, Euronext, Portfolio) has its own fetcher that coordinates scraping.
 
-## CLI Actions
+### Data Source Types
 
-1. **Fetch listings** - Download product listings from selected markets
-2. **Fetch details** - Download detailed product data (requires listings first)
-3. **Generate report** - Process data and create Excel report (requires details first)
-4. **Fetch single product** - Get details for one specific product
-5. **Run all** - Execute complete pipeline (listings → details → report)
-6. **Clean** - Remove all generated output files
+Markets use different data sources:
 
-## Output Structure
+- **BME Continuo**: REST API (no scraping needed) - Uses `apiweb.bolsasymercados.es` API
+- **BME Growth/ScaleUp**: HTML scraping via Playwright (ASP.NET forms with ViewState)
+- **Euronext**: Mixed HTML scraping + AJAX JSON endpoints
+- **Portfolio**: REST API (no scraping needed)
 
-```
-output/
-├── listings/
-│   ├── bme-continuo.json
-│   ├── bme-growth.json
-│   ├── bme-scaleup.json
-│   ├── euronext-access.json
-│   ├── euronext-expand.json
-│   ├── euronext-growth.json
-│   ├── euronext-regulated.json
-│   └── portfolio.json
-├── details/
-│   └── {market-slug}.json
-├── processed/
-│   └── {market-slug}.json
-└── report.xlsx
-```
+### Market Registry (`src/markets/`)
 
-## Project Structure
+Markets are defined declaratively with:
+
+- `MarketDefinition` - URLs, slugs, implementation status flags (`listings`, `details`, `processing`)
+- `MarketFamily` - Groups markets with similar scraping logic (bme, euronext, portfolio)
+- Family-specific types extend `BaseListingItem` and `BaseProductDetails`
+
+**To add a new market:**
+
+1. Create definition file in appropriate family folder (e.g., `src/markets/bme/newmarket.ts`)
+2. Export and add to `registry.ts` array
+3. Implement fetcher in `scrapers/fetchers/{family}/`
+4. Add parser in `scrapers/parsers/{family}/` if HTML structure differs
+5. Update CLI action in `src/cli/actions/fetch-details.ts` to handle new market family
+
+### Type Hierarchy
 
 ```
-src/
-├── cli/                    # CLI implementation
-│   ├── index.ts            # CLI entry point
-│   ├── banner.ts           # Figlet banner display
-│   ├── prompts.ts          # Menu prompts and user interactions
-│   ├── actions/            # CLI action handlers
-│   └── utils/              # Timer, logger, progress utilities
-├── markets/                # Market definitions
-│   ├── types.ts            # Market interfaces and types
-│   ├── registry.ts         # Market registry
-│   ├── bme/                # BME markets (Continuo, Growth, ScaleUp)
-│   ├── euronext/           # Euronext markets (Access, Expand, Growth, Regulated)
-│   └── portfolio/          # Portfolio Stock Exchange
-├── storage/                # JSON file operations
-├── helpers/                # Data transformation utilities (future)
-├── scrapers/               # Scraping logic (future)
-├── config.ts               # Project configuration
-├── index.ts                # Library exports
-└── utilities.ts            # Core utilities
+BaseListingItem → BmeListingItem | EuronextListingItem | PortfolioListingItem
+BaseProductDetails → BmeProductDetails | EuronextProductDetails | PortfolioProductDetails
+                   ↓
+               ProcessedProduct (normalized output)
 ```
+
+### Storage Layer (`src/storage/`)
+
+JSON file operations with consistent paths:
+
+- `output/listings/{market-slug}.json` - Raw listing data
+- `output/details/{market-slug}.json` - Raw product details
+- `output/details/{market-slug}-corporate-actions.json` - Corporate actions (BME)
+- `output/processed/{market-slug}.json` - Normalized data
+- `output/report.xlsx` - Final Excel report
+
+### CLI Structure (`src/cli/`)
+
+- `prompts.ts` - User interaction with @clack/prompts
+- `actions/` - Each CLI action in separate file
+- `utils/` - Timer, logger, progress spinner utilities
+
+### Helpers (`src/helpers/`)
+
+- `html.ts` - HTML text cleaning utilities
+- `parsing.ts` - Number/date parsing for Spanish formats
+
+## Configuration
+
+`src/config.ts` contains:
+
+- Output directory paths
+- Request settings (timeout: 30s, retries: 3, delay: 1s between requests)
+- `testModeLimit: 5` - Limits products fetched during development
+
+## Key Patterns
+
+### Detail Fetcher Result
+
+Detail fetchers return a consistent result object:
+
+```typescript
+interface DetailResult {
+  data?: Details;
+  error?: string;
+  fetchErrors?: string[]; // Non-fatal errors during fetch
+  missingFields?: string[]; // Optional fields that were missing
+  success: boolean;
+}
+```
+
+### Progress Callbacks
+
+Long operations accept callbacks for CLI progress updates:
+
+```typescript
+type ProgressCallback = (current: number, total: number, itemName: string) => void;
+type DetailProgressCallback = (phase: string, detail?: string) => void;
+```
+
+### Implementation Status
+
+Each market has `implemented` flags controlling which operations are available:
+
+- `listings: boolean` - Can fetch product lists
+- `details: boolean` - Can fetch individual product details
+- `processing: boolean` - Can normalize to `ProcessedProduct`
+
+Use `getImplementedMarkets('listings')` to filter markets by capability.
+
+## Current Implementation Status
+
+| Market             | Listings | Details | Processing |
+| ------------------ | -------- | ------- | ---------- |
+| BME Continuo       | ✅       | ✅      | ❌         |
+| BME Growth         | ✅       | ✅      | ❌         |
+| BME ScaleUp        | ✅       | ✅      | ❌         |
+| Euronext Access    | ✅       | ✅      | ❌         |
+| Euronext Expand    | ✅       | ✅      | ❌         |
+| Euronext Growth    | ✅       | ✅      | ❌         |
+| Euronext Regulated | ✅       | ✅      | ❌         |
+| Portfolio          | ✅       | ✅      | ❌         |

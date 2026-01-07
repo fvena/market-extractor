@@ -11,7 +11,25 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "Bash(npm uninstall:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "WebFetch(domain:www.bmegrowth.es)",
+      "Bash(timeout 5 npm start)",
+      "Bash(timeout 120 node:*)",
+      "Bash(timeout 180 npm start:*)",
+      "Bash(npx tsx:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_evaluate",
+      "Bash(timeout 60 npx tsx:*)",
+      "Bash(echo:*)",
+      "Bash(timeout 120 npx tsx:*)",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_tabs",
+      "mcp__playwright__browser_snapshot"
     ]
   }
 }

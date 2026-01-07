@@ -4,7 +4,7 @@ export const bmeGrowth: MarketDefinition = {
   family: "bme",
   id: "bme-growth",
   implemented: {
-    details: false,
+    details: true,
     listings: true,
     processing: false,
   },
@@ -12,6 +12,7 @@ export const bmeGrowth: MarketDefinition = {
   slug: "bme-growth",
   urls: {
     base: "https://www.bmegrowth.es",
+    corporateActions: "https://www.bmegrowth.es/esp/OperFinancieras.aspx",
     listings: "https://www.bmegrowth.es/esp/Listado.aspx",
   },
 };
