@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-market-extractor is a TypeScript library and CLI for scraping stock market data from BME (Spanish markets), Euronext, and Portfolio Stock Exchange. It fetches listings, extracts product details (including price history), and generates Excel reports.
+market-extractor is a TypeScript library and CLI for scraping stock market data from BME (Spanish markets), Euronext, and Portfolio Stock Exchange. It fetches listings, extracts product details, and generates Excel reports.
 
 ## Development Commands
 
@@ -28,57 +28,78 @@ npx playwright install chromium
 
 ### Data Pipeline
 
-The system follows a three-stage pipeline:
+The system follows a three-stage pipeline, each with its own module:
 
-1. **Listings** → Fetch product lists from market websites
-2. **Details** → Fetch detailed data for each product (including price history)
-3. **Report** → Process and generate Excel output
+1. **Listings** (`src/listings/`) → Fetch product lists from market websites
+2. **Details** (`src/details/`) → Fetch detailed data for each product (including price history)
+3. **Processing** (`src/processing/`) → Normalize data and generate reports
 
-### Scraping Layer (`src/scrapers/`)
+### Module Structure
 
-Three-tier architecture:
+Each pipeline stage follows a consistent pattern:
 
-- **clients/** - Browser (Playwright) and HTTP utilities for page navigation and API calls
-- **parsers/** - HTML/DOM extraction logic per market family
-- **fetchers/** - Orchestration: pagination, navigation, progress callbacks
+```
+src/{stage}/
+├── {stage}.ts              # Entry point with fetchMarket{Stage}() function
+├── fetchers/               # Data acquisition (HTTP/browser)
+│   └── {family}-{stage}-fetcher.ts
+└── parsers/                # HTML/JSON extraction
+    └── {family}-{stage}-parser.ts
+```
 
-Each market family (BME, Euronext, Portfolio) has its own fetcher that coordinates scraping.
+### Entry Point Functions
+
+Each module exports a main function that routes to the appropriate fetcher:
+
+- `fetchMarketListing(marketId, onProgress)` → Routes to family-specific listing fetcher
+- `fetchMarketDetails(marketId, isTestMode, onProgress)` → Routes to family-specific detail fetcher
+- `processMarkets(details, marketId)` → Routes to family-specific processor
 
 ### Data Source Types
 
 Markets use different data sources:
 
-- **BME Continuo**: REST API (no scraping needed) - Uses `apiweb.bolsasymercados.es` API
+- **BME Continuo**: REST API (`apiweb.bolsasymercados.es`)
 - **BME Growth/ScaleUp**: HTML scraping via Playwright (ASP.NET forms with ViewState)
 - **Euronext**: Mixed HTML scraping + AJAX JSON endpoints
-- **Portfolio**: REST API (no scraping needed)
+- **Portfolio**: REST API (`api.portfolio.exchange`)
 
-### Market Registry (`src/markets/`)
+### Market Registry (`src/markets.ts`)
 
-Markets are defined declaratively with:
+All markets are defined in a single file with the `MARKETS` record:
 
-- `MarketDefinition` - URLs, slugs, implementation status flags (`listings`, `details`, `processing`)
-- `MarketFamily` - Groups markets with similar scraping logic (bme, euronext, portfolio)
-- Family-specific types extend `BaseListingItem` and `BaseProductDetails`
+```typescript
+export const MARKETS: Record<MarketId, MarketDefinition> = {
+  "bme-continuo": bmeContinuo,
+  "bme-growth": bmeGrowth,
+  // ...
+};
+```
 
 **To add a new market:**
 
-1. Create definition file in appropriate family folder (e.g., `src/markets/bme/newmarket.ts`)
-2. Export and add to `registry.ts` array
-3. Implement fetcher in `scrapers/fetchers/{family}/`
-4. Add parser in `scrapers/parsers/{family}/` if HTML structure differs
-5. Update CLI action in `src/cli/actions/fetch-details.ts` to handle new market family
+1. Add market definition to `src/markets.ts`
+2. Add market ID to `MarketId` type in `src/types/types.ts`
+3. Add fetcher to `src/listings/fetchers/` and `src/details/fetchers/`
+4. Add parser if HTML structure differs from existing family parsers
+5. Register in the `MARKET_FETCH_*` records in the entry point files
 
-### Type Hierarchy
+### Type Hierarchy (`src/types/`)
 
 ```
-BaseListingItem → BmeListingItem | EuronextListingItem | PortfolioListingItem
-BaseProductDetails → BmeProductDetails | EuronextProductDetails | PortfolioProductDetails
-                   ↓
-               ProcessedProduct (normalized output)
+BaseListing → BmeAlternativesListing | BmeContinuoListing | EuronextListing | PortfolioListing
+BaseDetails → BmeAlternativesDetails | BmeContinuoDetails | EuronextDetails | PortfolioDetails
+BaseProcessed → BmeAlternativesProcessed | BmeContinuoProcessed | EuronextProcessed | PortfolioProcessed
 ```
 
-### Storage Layer (`src/storage/`)
+Types are organized by family:
+
+- `types.ts` - Base types, union types, and shared interfaces
+- `bme.types.ts` - BME-specific nested types (price history, corporate actions)
+- `euronext.types.ts` - Euronext-specific nested types (IPO entries, notices)
+- `portfolio.types.ts` - Portfolio-specific nested types
+
+### Storage Layer (`src/helpers/storage.ts`)
 
 JSON file operations with consistent paths:
 
@@ -90,67 +111,91 @@ JSON file operations with consistent paths:
 
 ### CLI Structure (`src/cli/`)
 
+- `index.ts` - Main CLI entry point with action loop
 - `prompts.ts` - User interaction with @clack/prompts
-- `actions/` - Each CLI action in separate file
-- `utils/` - Timer, logger, progress spinner utilities
+- `actions/` - Each CLI action in separate file (fetch-listings, fetch-details, etc.)
+- `utils/` - Banner, timer, logger, progress spinner, summary utilities
 
 ### Helpers (`src/helpers/`)
 
+- `browser.ts` - Playwright browser utilities (headless Chromium)
+- `http.ts` - HTTP client with LRU caching, retry logic, and ethical scraping headers
 - `html.ts` - HTML text cleaning utilities
-- `parsing.ts` - Number/date parsing for Spanish formats
+- `parsing.ts` - Number/date parsing for European formats (e.g., `2.698.182,10` → `2698182.10`)
+- `mic.ts` - ISO 10383 MIC code lookups for market names and countries
+- `missing-fields.ts` - Required field validation with dot-notation support for nested paths
+- `storage.ts` - JSON file I/O operations
+- `fill-missing-fields-from-related.ts` - Cross-references related instruments to fill missing data
+
+### Reference Data (`src/data/`)
+
+- `ISO10383_MIC.csv` - Market Identifier Codes for exchange name/country resolution
+- `ISO3166-1_alpha-2.csv` - Country code to name mapping
+
+## Key Patterns
+
+### Batch Result Pattern
+
+All batch operations return a consistent result structure:
+
+```typescript
+interface BatchProductResult<T> {
+  products: T[];
+  productsWithError: ProductError[];
+  productsWithMissingFields: ProductMissingFields[];
+}
+```
+
+### Required Fields Validation
+
+Each module defines required fields per market and validates results:
+
+```typescript
+const REQUIRED_FIELDS_BY_MARKET = {
+  "bme-continuo": ["isin", "name", ...],
+  "euronext-access": ["isin", "markets", ...],
+  // ...
+};
+```
+
+### Progress Callbacks
+
+Long operations accept a unified callback:
+
+```typescript
+type ProgressCallback = (message: string, current?: number, total?: number) => void;
+```
+
+### HTTP Client Features
+
+The `http.ts` module provides:
+
+- **LRU Caching**: JSON (100 entries, 5 min TTL) and HTML (200 entries, 10 min TTL)
+- **Ethical Headers**: Bot identification headers for transparency (`X-Bot-Name`, `X-Bot-Contact`)
+- **Cookie Jar**: Session management for ASP.NET sites requiring ViewState
+- **ASPX Token Extraction**: Parses `__VIEWSTATE`, `__VIEWSTATEGENERATOR`, `__EVENTVALIDATION`
 
 ## Configuration
 
 `src/config.ts` contains:
 
-- Output directory paths
+- Output directory paths (`output/listings/`, `output/details/`, `output/processed/`)
 - Request settings (timeout: 30s, retries: 3, delay: 1s between requests)
-- `testModeLimit: 5` - Limits products fetched during development
+- `testModeLimit: 5` - Limits products fetched in test mode
 
-## Key Patterns
+## Supported Markets
 
-### Detail Fetcher Result
+| Market Family   | Markets                           | Data Source                      |
+| --------------- | --------------------------------- | -------------------------------- |
+| **BME** (Spain) | Continuo, Growth, ScaleUp         | REST API + ASP.NET HTML scraping |
+| **Euronext**    | Access, Expand, Growth, Regulated | HTML scraping + AJAX JSON        |
+| **Portfolio**   | Portfolio Stock Exchange          | REST API                         |
 
-Detail fetchers return a consistent result object:
+## European Number/Date Formats
 
-```typescript
-interface DetailResult {
-  data?: Details;
-  error?: string;
-  fetchErrors?: string[]; // Non-fatal errors during fetch
-  missingFields?: string[]; // Optional fields that were missing
-  success: boolean;
-}
-```
+The codebase handles European data formats throughout:
 
-### Progress Callbacks
+- Numbers: `2.698.182,10` (dot as thousands separator, comma as decimal)
+- Dates: `DD/MM/YYYY` or `DD-MM-YYYY`
 
-Long operations accept callbacks for CLI progress updates:
-
-```typescript
-type ProgressCallback = (current: number, total: number, itemName: string) => void;
-type DetailProgressCallback = (phase: string, detail?: string) => void;
-```
-
-### Implementation Status
-
-Each market has `implemented` flags controlling which operations are available:
-
-- `listings: boolean` - Can fetch product lists
-- `details: boolean` - Can fetch individual product details
-- `processing: boolean` - Can normalize to `ProcessedProduct`
-
-Use `getImplementedMarkets('listings')` to filter markets by capability.
-
-## Current Implementation Status
-
-| Market             | Listings | Details | Processing |
-| ------------------ | -------- | ------- | ---------- |
-| BME Continuo       | ✅       | ✅      | ❌         |
-| BME Growth         | ✅       | ✅      | ❌         |
-| BME ScaleUp        | ✅       | ✅      | ❌         |
-| Euronext Access    | ✅       | ✅      | ❌         |
-| Euronext Expand    | ✅       | ✅      | ❌         |
-| Euronext Growth    | ✅       | ✅      | ❌         |
-| Euronext Regulated | ✅       | ✅      | ❌         |
-| Portfolio          | ✅       | ✅      | ❌         |
+Use helpers from `src/helpers/parsing.ts` for conversions.

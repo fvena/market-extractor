@@ -29,7 +29,10 @@
       "mcp__playwright__browser_fill_form",
       "mcp__playwright__browser_select_option",
       "mcp__playwright__browser_tabs",
-      "mcp__playwright__browser_snapshot"
+      "mcp__playwright__browser_snapshot",
+      "Bash(dir:*)",
+      "Bash(npx tsc:*)",
+      "mcp__sequential-thinking__sequentialthinking"
     ]
   }
 }

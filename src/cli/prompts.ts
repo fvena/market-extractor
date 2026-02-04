@@ -1,7 +1,7 @@
-import type { MarketId } from "../markets/types";
+import type { MarketId, ProductListing } from "../types/types";
 import * as p from "@clack/prompts";
-import colors from "yoctocolors";
-import { markets } from "../markets/registry";
+import { MARKETS } from "../markets";
+import { loadProductsListings } from "../helpers/storage";
 
 /**
  * Menu action types
@@ -55,13 +55,13 @@ export async function showMainMenu(): Promise<MenuAction> {
  * Select markets from the registry
  */
 export async function selectMarkets(preselected?: MarketId[]): Promise<MarketId[]> {
+  const markets = Object.values(MARKETS);
   const initialValues = preselected ?? markets.map((m) => m.id);
 
   const selected = await p.multiselect({
     initialValues,
     message: "Select markets to process:",
     options: markets.map((m) => ({
-      hint: m.implemented.listings ? undefined : colors.dim("not implemented"),
       label: m.name,
       value: m.id,
     })),
@@ -79,10 +79,11 @@ export async function selectMarkets(preselected?: MarketId[]): Promise<MarketId[
  * Select a single market
  */
 export async function selectSingleMarket(): Promise<MarketId | undefined> {
+  const markets = Object.values(MARKETS);
+
   const selected = await p.select({
     message: "Select a market:",
     options: markets.map((m) => ({
-      hint: m.implemented.listings ? undefined : colors.dim("not implemented"),
       label: m.name,
       value: m.id,
     })),
@@ -138,9 +139,9 @@ export async function searchProduct(): Promise<string | undefined> {
 /**
  * Select a product from a list of matches
  */
-export async function selectProduct<T extends { id: string; name: string }>(
-  products: T[],
-): Promise<T | undefined> {
+export async function selectProduct(
+  products: ProductListing[],
+): Promise<ProductListing | undefined> {
   if (products.length === 0) {
     return;
   }
@@ -153,7 +154,7 @@ export async function selectProduct<T extends { id: string; name: string }>(
     message: `Found ${String(products.length)} matches. Select one:`,
     options: products.map((product) => ({
       label: product.name,
-      value: product.id,
+      value: product.url,
     })),
   });
 
@@ -161,7 +162,7 @@ export async function selectProduct<T extends { id: string; name: string }>(
     return;
   }
 
-  return products.find((product) => product.id === selected);
+  return products.find((product) => product.url === selected);
 }
 
 /**
@@ -197,4 +198,49 @@ export async function confirmAction(message: string): Promise<boolean> {
   }
 
   return confirmed;
+}
+
+export async function selectSingleProduct(): Promise<{
+  marketId?: MarketId;
+  product?: ProductListing;
+}> {
+  const marketId = await selectSingleMarket();
+
+  if (!marketId) {
+    p.log.error("No market selected");
+    return {};
+  }
+
+  // Load listings for the selected market
+  const market = MARKETS[marketId];
+  const listings = await loadProductsListings<ProductListing>(market.slug);
+
+  if (!listings || listings.length === 0) {
+    p.log.error(`No listings found for ${market.name}`);
+    return {};
+  }
+
+  // Search for a product
+  const productName = await searchProduct();
+
+  if (!productName || typeof productName !== "string") {
+    p.log.error("No product name provided");
+    return {};
+  }
+
+  // Find matches in real listings
+  const matches = listings.filter((item) =>
+    item.name.toLowerCase().includes(productName.toLowerCase()),
+  );
+
+  if (matches.length === 0) {
+    p.log.error(`No products found matching "${productName}"`);
+    return {};
+  }
+
+  // Select product if multiple matches
+  return {
+    marketId,
+    product: await selectProduct(matches),
+  };
 }

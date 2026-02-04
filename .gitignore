@@ -46,7 +46,6 @@ docs/.vitepress/dist
 Thumbs.db
 
 # Data
-data/
 temp/
 
 # Output files

@@ -1,16 +1,26 @@
-import type { ActionResult } from "./actions";
+import type {
+  ActionResult,
+  ProcessedProduct,
+  ProductDetails,
+  ProductListing,
+} from "../types/types";
 import { intro, outro } from "@clack/prompts";
-import { showBanner } from "./banner";
-import { askContinue, showMainMenu } from "./prompts";
+import * as p from "@clack/prompts";
+import { showBanner } from "./utils/banner";
 import {
-  clean,
-  fetchDetails,
-  fetchListings,
-  fetchSingleProduct,
-  generateReport,
-  runAll,
-  showSummary,
-} from "./actions";
+  askContinue,
+  selectMarkets,
+  selectSingleProduct,
+  selectTestMode,
+  showMainMenu,
+} from "./prompts";
+import { showSummary } from "./utils/summary";
+import { fetchMarketsListings } from "./actions/fetch-listings";
+import { fetchMarketsDetails } from "./actions/fetch-details";
+import { generateMarketsReport } from "./actions/generate-report";
+import { fetchSingleProduct } from "./actions/fetch-single";
+import { runAll } from "./actions/run-all";
+import { clean } from "./actions/clean";
 
 // Read version from package.json
 async function getVersion(): Promise<string> {
@@ -37,7 +47,7 @@ async function main(): Promise<void> {
   while (running) {
     const action = await showMainMenu();
 
-    let result: ActionResult | undefined;
+    let result: ActionResult<ProcessedProduct | ProductDetails | ProductListing> | undefined;
 
     switch (action) {
       case "clean": {
@@ -45,23 +55,32 @@ async function main(): Promise<void> {
         break;
       }
       case "fetch-details": {
-        result = await fetchDetails();
+        const selectedMarkets = await selectMarkets();
+        const isTestMode = await selectTestMode();
+        result = await fetchMarketsDetails(selectedMarkets, isTestMode);
         break;
       }
       case "fetch-listings": {
-        result = await fetchListings();
+        const selectedMarkets = await selectMarkets();
+        result = await fetchMarketsListings(selectedMarkets);
         break;
       }
       case "fetch-single": {
-        result = await fetchSingleProduct();
+        const { marketId, product } = await selectSingleProduct();
+        if (!marketId || !product) {
+          p.log.error("No product selected");
+          break;
+        }
+        result = await fetchSingleProduct(marketId, product);
         break;
       }
       case "generate-report": {
-        result = await generateReport();
+        result = await generateMarketsReport();
         break;
       }
       case "run-all": {
-        result = await runAll();
+        const selectedMarkets = await selectMarkets();
+        result = runAll(selectedMarkets);
         break;
       }
       case "exit": {
@@ -70,7 +89,6 @@ async function main(): Promise<void> {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- result is not always defined
     if (result) {
       showSummary(result);
     }

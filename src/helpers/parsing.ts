@@ -58,6 +58,27 @@ export function parseSpanishDateTime(text: string): string | undefined {
 }
 
 /**
+ * Parsea la fecha del formato "Day DD/MM/YYYY" a ISO string
+ */
+export function parseIpoDate(dateString: string): string {
+  // Formato: "Fri 22/06/2018" o similar
+  const match = /(\d{2})\/(\d{2})\/(\d{4})/.exec(dateString);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${String(year)}-${String(month)}-${String(day)}`;
+  }
+  return dateString;
+}
+
+/**
+ * Parse BME Continuo date format: "20250611" → "2025-06-11"
+ */
+export function parseContinuoDate(text: string): string | undefined {
+  if (!text) return undefined;
+  return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+}
+
+/**
  * Clean text: remove extra whitespace, newlines, tabs
  */
 export function cleanText(text: string): string {
@@ -116,6 +137,36 @@ export function daysAgo(days: number): Date {
   return date;
 }
 
+const months: Record<string, string> = {
+  Apr: "04",
+  Aug: "08",
+  Dec: "12",
+  Feb: "02",
+  Jan: "01",
+  Jul: "07",
+  Jun: "06",
+  Mar: "03",
+  May: "05",
+  Nov: "11",
+  Oct: "10",
+  Sep: "09",
+};
+
+/**
+ * Parse listing date from tooltip text
+ * Converts various date formats to YYYY-MM-DD
+ */
+export function parseListingDateFromTooltip(input: string): string | undefined {
+  const [month, day, year] = input.split(" ");
+
+  if (!month || !day || !year) return undefined;
+
+  const monthNumber = months[month];
+  if (!monthNumber) return undefined;
+
+  return `${year}-${monthNumber}-${day.padStart(2, "0")}`;
+}
+
 /**
  * Parse ratio string: "1 x 20"
  */
@@ -145,4 +196,23 @@ export function parseSuspendedDate(text: string): string | undefined {
   if (!match?.[1]) return undefined;
 
   return parseSpanishDate(match[1]);
+}
+
+/**
+ * Parse Euronext IPO date format: "Fri 16/11/2012" → "2012-11-16"
+ * Handles format: "Day DD/MM/YYYY" where Day is optional day name
+ */
+export function parseEuronextIpoDate(text: string): string | undefined {
+  if (!text) return undefined;
+
+  const cleaned = cleanText(text);
+  // Match DD/MM/YYYY anywhere in the string
+  const match = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(cleaned);
+
+  if (!match?.[1] || !match[2] || !match[3]) return undefined;
+
+  const day = match[1];
+  const month = match[2];
+  const year = match[3];
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }

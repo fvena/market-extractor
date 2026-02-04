@@ -1,84 +1,115 @@
-import type { MarketOperationResult } from "../../markets/types";
-import type { ActionResult } from "./index";
+import type {
+  ActionResult,
+  MarketId,
+  MarketOperationResult,
+  ProcessedProduct,
+} from "../../types/types";
+import type { Tasks } from "../utils/tasks";
 import { createTimer } from "../utils/timer";
-import { createSpinner, succeedSpinner, warnSpinner } from "../utils/progress";
-import { markets } from "../../markets/registry";
-import { hasDetails } from "../../storage";
+import {
+  createTask,
+  createTasks,
+  failTask,
+  succeedTask,
+  succeedTasks,
+  warnTask,
+} from "../utils/tasks";
+import { marketIds, MARKETS } from "../../markets";
+import { saveProductsProcessed } from "../../helpers/storage";
+import { processMarkets } from "../../processing/processing";
+import { buildFinalMessage, displayIncidents } from "../utils/incidents";
+
+// ============================================
+// SINGLE MARKET PROCESSING
+// ============================================
 
 /**
- * Simulate processing delay
+ * Process a single market (for parallel execution)
+ * Updates the multi-spinner with progress
  */
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function processSingleMarket(
+  marketId: MarketId,
+  tasks: Tasks,
+): Promise<MarketOperationResult<ProcessedProduct>> {
+  const market = MARKETS[marketId];
+  const timer = createTimer();
+
+  // Mark as running
+  const task = createTask(tasks, `Processing ${market.name}`);
+
+  try {
+    // Process market
+    const result = await processMarkets(marketId);
+
+    const totalProducts = result.products.length;
+    const totalErrors = result.productsWithError.length;
+    const totalWarnings = result.productsWithMissingFields.length;
+
+    // Save processed products
+    const path = await saveProductsProcessed(market.slug, result.products);
+
+    // Update spinner item with final status
+    const finalMessage = buildFinalMessage(totalProducts, totalErrors, totalWarnings, path);
+
+    if (totalErrors > 0) {
+      failTask(task, `Processing ${market.name}: ${finalMessage}`);
+    } else if (totalWarnings > 0) {
+      warnTask(task, `Processing ${market.name}: ${finalMessage}`);
+    } else {
+      succeedTask(task, `Processing ${market.name}: ${finalMessage}`);
+    }
+
+    return {
+      duration: timer.stop(),
+      errors: result.productsWithError,
+      marketId: market.id,
+      marketName: market.name,
+      products: result.products,
+      warnings: result.productsWithMissingFields,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    // Mark as failed
+    failTask(task, `Processing ${market.name}: ${errorMessage}`);
+
+    return {
+      duration: timer.stop(),
+      errors: [{ error: errorMessage, name: market.name }],
+      marketId: market.id,
+      marketName: market.name,
+      products: [],
+      warnings: [],
+    };
+  }
 }
+
+// ============================================
+// MAIN EXPORT
+// ============================================
 
 /**
  * Generate report action
- * Processes data and creates Excel report
+ * Processes details and creates normalized product files in parallel
+ * @param options - Optional configuration (concurrency limit)
  */
-export async function generateReport(): Promise<ActionResult> {
-  const results: MarketOperationResult[] = [];
+export async function generateMarketsReport(): Promise<ActionResult<ProcessedProduct>> {
   const totalTimer = createTimer();
 
-  // Phase 1: Process each market's details
-  let hasAnyDetails = false;
+  // Create tasks container
+  const tasks = createTasks("Generating report");
 
-  for (const market of markets) {
-    const timer = createTimer();
+  // Create task functions for each market
+  const tasksMarkets = marketIds.map((marketId) => () => processSingleMarket(marketId, tasks));
 
-    const detailsExist = await hasDetails(market.slug);
+  // Process markets with optional concurrency limit
+  const results = await Promise.all(tasksMarkets.map((task) => task()));
 
-    if (!detailsExist) {
-      continue;
-    }
+  // Stop spinner animation
+  succeedTasks(tasks, "Generating report completed");
 
-    hasAnyDetails = true;
-
-    if (!market.implemented.processing) {
-      const spinner = createSpinner(`Processing ${market.name}...`);
-      await delay(100);
-      warnSpinner(spinner, `${market.name} - Processing not implemented`);
-      results.push({
-        duration: timer.stop(),
-        marketId: market.id,
-        success: false,
-        warnings: ["Processing not implemented"],
-      });
-      continue;
-    }
-
-    // Stub: simulate successful processing
-    const spinner = createSpinner(`Processing ${market.name}...`);
-    await delay(200 + Math.random() * 300);
-    const mockCount = Math.floor(20 + Math.random() * 80);
-    succeedSpinner(spinner, `${market.name} - ${String(mockCount)} products processed`);
-
-    results.push({
-      count: mockCount,
-      duration: timer.stop(),
-      marketId: market.id,
-      success: true,
-    });
-  }
-
-  if (!hasAnyDetails) {
-    const spinner = createSpinner("Generating report...");
-    await delay(100);
-    warnSpinner(spinner, 'No details found. Run "Fetch Details" first.');
-
-    return {
-      action: "Generate Report",
-      results: [],
-      totalDuration: totalTimer.stop(),
-    };
-  }
-
-  // Phase 2: Generate Excel report
-  const reportSpinner = createSpinner("Generating Excel report...");
-  await delay(300 + Math.random() * 200);
-
-  // Stub: simulate report generation
-  succeedSpinner(reportSpinner, "Report generated: output/report.xlsx");
+  // Display accumulated incidents at the end
+  displayIncidents(results);
 
   return {
     action: "Generate Report",

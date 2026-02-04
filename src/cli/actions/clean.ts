@@ -1,8 +1,13 @@
-import type { ActionResult } from "./index";
+import type {
+  ActionResult,
+  ProcessedProduct,
+  ProductDetails,
+  ProductListing,
+} from "../../types/types";
 import { confirmAction } from "../prompts";
 import { createTimer } from "../utils/timer";
-import { createSpinner, failSpinner, succeedSpinner } from "../utils/progress";
-import { cleanAll } from "../../storage";
+import { createSpinner, failSpinner, succeedSpinner } from "../utils/spinner";
+import { cleanAll } from "../../helpers/storage";
 
 /**
  * Simulate processing delay
@@ -15,7 +20,9 @@ function delay(ms: number): Promise<void> {
  * Clean action
  * Removes all generated output files
  */
-export async function clean(): Promise<ActionResult> {
+export async function clean(): Promise<
+  ActionResult<ProcessedProduct | ProductDetails | ProductListing>
+> {
   const totalTimer = createTimer();
 
   const confirmed = await confirmAction("This will delete all output files. Are you sure?");
@@ -28,7 +35,7 @@ export async function clean(): Promise<ActionResult> {
     };
   }
 
-  const spinner = createSpinner("Cleaning output directory...");
+  const spinner = createSpinner("Cleaning output directory");
 
   try {
     await cleanAll();
@@ -40,8 +47,11 @@ export async function clean(): Promise<ActionResult> {
       results: [
         {
           duration: totalTimer.stop(),
+          errors: [],
           marketId: "portfolio", // Placeholder - clean affects all
-          success: true,
+          marketName: "Portfolio",
+          products: [],
+          warnings: [],
         },
       ],
       totalDuration: totalTimer.stop(),
@@ -55,9 +65,11 @@ export async function clean(): Promise<ActionResult> {
       results: [
         {
           duration: totalTimer.stop(),
-          error: errorMessage,
+          errors: [{ error: errorMessage, name: "Portfolio" }],
           marketId: "portfolio",
-          success: false,
+          marketName: "Portfolio",
+          products: [],
+          warnings: [],
         },
       ],
       totalDuration: totalTimer.stop(),
