@@ -27,14 +27,18 @@ export async function showMainMenu(): Promise<MenuAction> {
         label: "Fetch listings",
         value: "fetch-listings",
       },
-      { hint: "Download detailed product data", label: "Fetch details", value: "fetch-details" },
+      {
+        hint: "Download and process detailed product data",
+        label: "Fetch details",
+        value: "fetch-details",
+      },
       {
         hint: "Get details for one specific product",
         label: "Fetch single product",
         value: "fetch-single",
       },
       {
-        hint: "Process data and create Excel report",
+        hint: "Reprocess already fetched details and generate stats",
         label: "Generate report",
         value: "generate-report",
       },

@@ -321,6 +321,8 @@ export interface EuronextProcessed extends BaseProcessed {
   marketMigrations: MarketMigration[];
   /** Market name */
   marketsNames: string[];
+  /** Original listing date (first IPO, may differ from listingDate if product migrated between markets) */
+  originalListingDate: string;
   /** Related instruments */
   relatedInstruments: RelatedInstrument[];
 }

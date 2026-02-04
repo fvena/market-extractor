@@ -9,6 +9,7 @@ export const config = {
   dirs: {
     details: "details",
     listings: "listings",
+    markets: "markets",
     processed: "processed",
   },
 

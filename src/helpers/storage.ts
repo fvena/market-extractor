@@ -1,3 +1,4 @@
+import type { MarketStats } from "../types/market-stats.types";
 import type { ProcessedProduct } from "../types/types";
 import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -36,6 +37,13 @@ function getCorporateActionsPath(slug: string): string {
 }
 
 /**
+ * Get path for market stats file
+ */
+function getMarketStatsPath(slug: string): string {
+  return path.join(config.outputDir, config.dirs.markets, `${slug}.json`);
+}
+
+/**
  * Get path for report file
  */
 function getReportPath(): string {
@@ -50,6 +58,7 @@ async function ensureOutputDirectories(): Promise<void> {
     config.outputDir,
     path.join(config.outputDir, config.dirs.listings),
     path.join(config.outputDir, config.dirs.details),
+    path.join(config.outputDir, config.dirs.markets),
     path.join(config.outputDir, config.dirs.processed),
   ];
 
@@ -171,6 +180,29 @@ export async function loadCorporateActions<T>(slug: string): Promise<T | undefin
 }
 
 /**
+ * Save market stats to JSON file
+ */
+export async function saveMarketStats(slug: string, data: MarketStats): Promise<string> {
+  await ensureOutputDirectories();
+  const filePath = getMarketStatsPath(slug);
+  // eslint-disable-next-line unicorn/no-null -- File path is safe
+  await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+  return removeAbsolutePath(filePath);
+}
+
+/**
+ * Load market stats from JSON file
+ */
+export async function loadMarketStats(slug: string): Promise<MarketStats | undefined> {
+  const filePath = getMarketStatsPath(slug);
+  if (!(await fileExists(filePath))) {
+    return;
+  }
+  const content = await readFile(filePath, "utf8");
+  return JSON.parse(content) as MarketStats;
+}
+
+/**
  * Clean all output directory contents
  */
 export async function cleanAll(): Promise<void> {
@@ -178,6 +210,7 @@ export async function cleanAll(): Promise<void> {
     // Remove all subdirectories
     await rm(path.join(config.outputDir, config.dirs.listings), { force: true, recursive: true });
     await rm(path.join(config.outputDir, config.dirs.details), { force: true, recursive: true });
+    await rm(path.join(config.outputDir, config.dirs.markets), { force: true, recursive: true });
     await rm(path.join(config.outputDir, config.dirs.processed), { force: true, recursive: true });
 
     // Remove report file

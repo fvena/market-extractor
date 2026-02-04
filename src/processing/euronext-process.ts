@@ -13,6 +13,7 @@ import { getEuronextYearlyMarketCap } from "./helpers/get-yearly-history";
 import { getEuronextLiquidity } from "./helpers/get-liquidity";
 import { parseEuronextCorporateActions } from "./helpers/parse-euronext-corporate-actions";
 import { getSuspensionDate, isSuspendedEuronext } from "./helpers/get-suspension-status";
+import { getEuronextListingDates } from "./helpers/get-listing-dates-euronext";
 
 /**
  * Process Euronext details to normalized format
@@ -23,8 +24,8 @@ export function processEuronext(
   requiredFields: readonly string[],
 ): ProductResult<ProcessedProduct> {
   try {
-    // Infer listing date from available data sources
-    // const inferredListingDate = inferEuronextListingDate(details);
+    // Calculate listing dates from ipoEntries
+    const { marketListingDate, originalListingDate } = getEuronextListingDates(details, marketId);
 
     // Infer country from first MIC code if not available
     const firstMic = details.markets[0];
@@ -33,13 +34,15 @@ export function processEuronext(
     const { sector, subsector } = normalizeSector(marketId, details.sector, details.subsector);
 
     const marketMigrations = getMarketMigrationEuronext(details);
+
+    // Use marketListingDate for calculations (date when product entered current market)
     const yearlyHistory = getEuronextYearlyMarketCap(
       details.priceHistory.prices,
-      details.listingDate,
+      marketListingDate,
       details.admittedShares,
     );
     const liquidity = getEuronextLiquidity(
-      details.listingDate,
+      marketListingDate,
       details.priceHistory,
       details.admittedShares,
     );
@@ -61,14 +64,15 @@ export function processEuronext(
       isSuspended: isSuspended,
       lastPrice: lastPrice!,
       liquidity: liquidity,
-      listingDate: details.listingDate,
+      listingDate: marketListingDate,
       marketCap: marketCap!,
       marketId: marketId,
-      marketListingDate: details.listingDate,
+      marketListingDate: marketListingDate,
       marketMigrations: marketMigrations,
       marketsNames: getMicMarketNames(details.markets),
       name: details.name,
       nominalValue: details.nominalValue!,
+      originalListingDate: originalListingDate,
       relatedInstruments: getRelatedInstrumentsEuronext(details),
       sector: sector,
       shares: details.admittedShares,

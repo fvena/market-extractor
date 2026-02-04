@@ -129,6 +129,16 @@ export function formatSpanishDate(date: Date): string {
 }
 
 /**
+ * Format date in ISO format: Date → "yyyy-mm-dd"
+ */
+export function formatIsoDate(date: Date): string {
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear().toString();
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Get date N days ago
  */
 export function daysAgo(days: number): Date {

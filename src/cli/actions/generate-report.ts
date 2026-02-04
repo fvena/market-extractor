@@ -15,8 +15,13 @@ import {
   warnTask,
 } from "../utils/tasks";
 import { marketIds, MARKETS } from "../../markets";
-import { saveProductsProcessed } from "../../helpers/storage";
+import {
+  loadProductsProcessed,
+  saveMarketStats,
+  saveProductsProcessed,
+} from "../../helpers/storage";
 import { processMarkets } from "../../processing/processing";
+import { generateMarketStats } from "../../processing/market-stats";
 import { buildFinalMessage, displayIncidents } from "../utils/incidents";
 
 // ============================================
@@ -85,31 +90,79 @@ async function processSingleMarket(
 }
 
 // ============================================
+// SINGLE MARKET STATS GENERATION
+// ============================================
+
+/**
+ * Generate stats for a single market
+ */
+async function generateSingleMarketStats(marketId: MarketId, tasks: Tasks): Promise<void> {
+  const market = MARKETS[marketId];
+  const task = createTask(tasks, "Generating stats", market.name);
+
+  try {
+    // Load processed products
+    const products = await loadProductsProcessed(market.slug);
+
+    if (!products || products.length === 0) {
+      failTask(task, "No processed products found");
+      return;
+    }
+
+    // Generate and save market stats
+    const stats = generateMarketStats(market, products);
+    const path = await saveMarketStats(market.slug, stats);
+
+    const summary = `${String(stats.productCount)} products, ${(stats.totalMarketCap / 1e9).toFixed(1)}B EUR → ${path}`;
+    succeedTask(task, summary);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    failTask(task, errorMessage);
+  }
+}
+
+// ============================================
 // MAIN EXPORT
 // ============================================
 
 /**
  * Generate report action
- * Processes details and creates normalized product files in parallel
- * @param options - Optional configuration (concurrency limit)
+ * Processes already fetched details and generates market stats for all markets
  */
 export async function generateMarketsReport(): Promise<ActionResult<ProcessedProduct>> {
   const totalTimer = createTimer();
 
-  // Create tasks container
-  const tasks = createTasks("Generating report");
+  // ============================================
+  // PHASE 1: PROCESS DETAILS
+  // ============================================
+  const processTasks = createTasks("Processing markets");
 
-  // Create task functions for each market
-  const tasksMarkets = marketIds.map((marketId) => () => processSingleMarket(marketId, tasks));
+  // Create task functions for all markets
+  const tasksMarkets = marketIds.map(
+    (marketId) => () => processSingleMarket(marketId, processTasks),
+  );
 
-  // Process markets with optional concurrency limit
+  // Process markets in parallel
   const results = await Promise.all(tasksMarkets.map((task) => task()));
 
   // Stop spinner animation
-  succeedTasks(tasks, "Generating report completed");
+  succeedTasks(processTasks, "Processing completed");
 
-  // Display accumulated incidents at the end
+  // Display accumulated incidents
   displayIncidents(results);
+
+  // ============================================
+  // PHASE 2: GENERATE MARKET STATS
+  // ============================================
+  const statsTasks = createTasks("Generating market statistics");
+
+  // Generate stats for all markets in parallel
+  await Promise.all(
+    marketIds.map((marketId) => generateSingleMarketStats(marketId, statsTasks)),
+  );
+
+  // Stop spinner animation
+  succeedTasks(statsTasks, "Market statistics generated");
 
   return {
     action: "Generate Report",

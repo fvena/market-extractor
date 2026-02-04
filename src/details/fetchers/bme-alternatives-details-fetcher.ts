@@ -22,7 +22,7 @@ import {
   parsePriceHistoryPage,
   sortPricesByDate,
 } from "../parsers/bme-price-history-parser";
-import { daysAgo, formatSpanishDate } from "../../helpers/parsing";
+import { daysAgo, formatIsoDate, formatSpanishDate } from "../../helpers/parsing";
 import { getMissingRequiredFields } from "../../helpers/missing-fields";
 
 /**
@@ -181,8 +181,8 @@ async function fetchPriceHistory(
     return {
       data: {
         marketDays: totalMarketDays,
-        periodEnd: formatSpanishDate(endDate),
-        periodStart: formatSpanishDate(startDate),
+        periodEnd: formatIsoDate(endDate),
+        periodStart: formatIsoDate(startDate),
         prices: sortedPrices,
       },
     };
